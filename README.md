@@ -13,10 +13,45 @@ Slack과 AWS Lambda, 그리고 Dooray! Mail을 연동하여 매월 정기적인 
 
 이 봇은 두 가지 독립적인 트리거 경로를 하나의 AWS Lambda 함수에서 효율적으로 분기하여 처리합니다.
 
-```text
-[AWS EventBridge] ──(Scheduled Event)──┐
-├──> [ AWS Lambda (Handler) ]
-[Slack API Gateway] ──(HTTP Request)───┘
+```mermaid
+flowchart TB
+    subgraph EXT["외부 서비스"]
+        SLACK[("Slack API<br/>커맨드 / 버튼 / 모달")]
+        DOORAY[("Dooray! Mail<br/>딥링크")]
+    end
+
+    subgraph AWS["AWS Cloud"]
+        direction TB
+
+        APIGW["API 게이트웨이<br/>(HTTP Endpoint)"]
+        EVB["EventBridge Scheduler<br/>(매월 마지막주 수요일<br/>09:10 KST)"]
+
+        subgraph LAMBDA["AWS Lambda: SlackBot_MonthlyReport (Python 3.12)"]
+            direction TB
+            HANDLER["lambda_handler(event, context)<br/>── 진입점"]
+
+            HANDLER -->|"event.source ==<br/>'aws.events'"| REMINDER["post_monthly_reminder()<br/>_is_last_wednesday() 체크"]
+            HANDLER -->|"그 외 (Slack 요청)"| BOLT["slack_handler.handle()<br/>Slack Bolt App"]
+
+            BOLT --> CMD["/monthly_report<br/>command"]
+            BOLT --> BTN["open_report_modal_button<br/>action"]
+            BOLT --> SUBMIT["handle_report_submit()<br/>view submission"]
+
+            CMD --> MODAL["build_report_modal_view()"]
+            BTN --> MODAL
+
+            SUBMIT --> CFG["report_config.py<br/>RECIPIENTS, DOORAY_DOMAIN"]
+            SUBMIT --> PDF["report_pdf.py<br/>generate_report_pdf()"]
+        end
+
+        APIGW --> HANDLER
+        EVB --> HANDLER
+    end
+
+    SLACK <-->|"이벤트/커맨드 수신<br/>메시지/모달 응답"| APIGW
+    REMINDER -->|"chat_postMessage"| SLACK
+    SUBMIT -->|"files_upload_v2<br/>PDF 전송 (DM)"| SLACK
+    SUBMIT -->|"compose_url 생성"| DOORAY
 ```
 
 ### 🚀 [경로 A] AWS EventBridge 정기 호출 (알림 자동화)
