@@ -62,10 +62,6 @@ Slack과 AWS Lambda, 그리고 Dooray! Mail을 연동하여 매월 정기적인 
 pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: -r requirements.txt
 ```
 
-- **Framework**: Slack Bolt for Python (`slack_bolt`)
-- **Serverless**: AWS Lambda, Amazon API Gateway, Amazon EventBridge
-- **Integration**: Dooray! Mail Link
-
 ## 📖 관련 글
 
 이 프로젝트의 개발 과정과 상세한 구현 내용은 아래 블로그 글에 정리되어 있습니다.
